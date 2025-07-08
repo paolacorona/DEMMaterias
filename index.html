@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestor de Espacios Curriculares No Troncales - DEM</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #cccccc;
+    }
+    h1, h2 {
+      color: #333;
+      text-align: center;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 30px;
+      background-color: white;
+    }
+    th, td {
+      border: 1px solid #999;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .sheet-title {
+      margin-top: 40px;
+      color: #2c3e50;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 5px;
+    }
+    select {
+      width: 100%;
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 5px;
+      box-sizing: border-box;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    .header-card {
+      max-width: 960px;
+      margin: 0 auto 20px auto;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .header-banner {
+      background: #117a65;
+      color: #ffffff;
+      padding: 20px 30px;
+      text-align: center;
+      border-radius: 8px 8px 0 0;
+    }
+    .header-banner h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+    .header-banner p {
+      margin: 6px 0 0 0;
+      font-size: 14px;
+      font-style: italic;
+    }
+    .toggle-datos {
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin: 10px auto;
+      display: block;
+    }
+    .toggle-datos:hover {
+      background-color: #5a6268;
+    }
+    .datos-fuente {
+      display: none;
+      margin-top: 10px;
+    }
+    #descargarBtn {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 20px auto;
+      display: block;
+    }
+    #descargarBtn:hover {
+      background-color: #2980b9;
+    }
+    .materia-agotada {
+      background-color: #ffebee !important;
+      color: #c62828;
+    }
+    .horas-excedidas {
+      background-color: #ffcdd2 !important;
+      color: #d32f2f;
+    }
+    .option-completa {
+      color: #999 !important;
+      background-color: #f0f0f0 !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-card">
+    <div class="header-banner">
+      <h1>Gestor de Espacios Curriculares No Troncales - DEM</h1>
+      <p>Asignación de horas por espacio y control dinámico</p>
+    </div>
+  </div>
+
+  <button class="toggle-datos" onclick="toggleDatos()">Mostrar/Ocultar estado de materias</button>
+
+  <div class="datos-fuente">
+    <table id="estadoMaterias">
+      <thead>
+        <tr><th>Materia</th><th>Total disponible</th><th>Asignadas</th><th>Restantes</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="contenedor"></div>
+  <button id="descargarBtn">Descargar en PDF</button>
+
+  <script>
+    const materias = {
+      "Educación Física 1°": 3, "Educación Física 2°": 3, "Educación Física 3°": 3, "Educación Física 4°": 3, "Educación Física 5°": 3,
+      "Biología 1°": 4, "Biología 2°": 4, "Biología 3°": 3,
+      "Historia 1°": 4, "Historia 2°": 4, "Historia 3°": 2, "Historia 4°": 2,
+      "Geografía 1°": 3, "Geografía 2°": 3, "Geografía 3°": 2, "Geografía 4°": 2,
+      "Formación Ética y Ciudadana 1°": 2, "Formación Ética y Ciudadana 2°": 2, "Formación Ética y Ciudadana 3°": 2, "Formación Ética y Ciudadana 4°": 2,
+      "Educación Tecnológica 1°": 2, "Educación Tecnológica 2°": 2,
+      "Artes 1°": 3, "Artes 2°": 3, "Artes 4°": 2,
+      "Tecnologías de la Información 3°": 2, "Tecnologías de la Información 4°": 2,
+      "Economía 3°": 3,
+      "Física 4°": 3,
+      "Físico-Química 3°": 4,
+      "Filosofía 4°": 2,
+      "Química 5°": 4,
+      "Formación específica 4°": 9, "Formación específica 5°": 16
+    };
+
+    const espacios = [
+      "Lab. CSyH 1 (oblig.)", "Lab. CSyH 2 (oblig.)", "Lab. CSyH 3 (oblig.)", "Lab. CSyH 4 (oblig.)",
+      "Lab. CSyH 1 (elect.)", "Lab. CSyH 2 (elect.)", "Lab. CSyH 3 (elect.)", "Lab. CSyH 4 (elect.)", "Lab. CSyH 5 (elect.)",
+      "Lab. CN 1 (oblig.)", "Lab. CN 2 (oblig.)", "Lab. CN 3 (oblig.)", "Lab. CN 4 (oblig.)",
+      "Lab. CN 1 (elect.)", "Lab. CN 2 (elect.)", "Lab. CN 3 (elect.)", "Lab. CN 4 (elect.)", "Lab. CN 5 (elect.)", "Lab. CN 9 (elect.)",
+      "Lab. orientación 1", "Lab. orientación 2", "Lab. orientación 3",
+      "Taller orientación 1", "Taller orientación 2", "Taller orientación 3",
+      "Proyecto de egreso",
+      "EF 1", "EF 2", "EF 3", "EF 4", "EF 5", "EF 6", "EF 7", "EF 8", "EF 9", "EF 10",
+      "Artes 1", "Artes 2", "Artes 3", "Artes 4", "Artes 5", "Artes 6",
+      "Tecnología 1", "Tecnología 2", "Tecnología 3", "Tecnología 4", "Tecnología 5", "Tecnología 6"
+    ];
+
+    const contenedor = document.getElementById("contenedor");
+
+    // Crear tabla principal
+    const tabla = document.createElement("table");
+    tabla.innerHTML = `
+      <thead>
+        <tr>
+          <th>Espacio</th>
+          <th>Materia 1</th>
+          <th>Horas asignadas</th>
+          <th>Horas restantes</th>
+          <th>Materia 2</th>
+          <th>Horas asignadas</th>
+          <th>Horas restantes</th>
+          <th>Materia 3</th>
+          <th>Horas asignadas</th>
+          <th>Horas restantes</th>
+          <th>Total horas asignadas</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${espacios.map(esp => `
+          <tr>
+            <td>${esp}</td>
+            ${[1,2,3].map(() => `
+              <td><select onchange="actualizarHoras(this)">
+                <option value="">--</option>
+                ${Object.keys(materias).map(mat => `<option value="${mat}">${mat}</option>`).join('')}
+              </select></td>
+              <td><input type="number" min="0" value="0" oninput="actualizarHoras(this)"></td>
+              <td class="resta">0</td>
+            `).join('')}
+            <td class="total-asignadas">0</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+    contenedor.appendChild(tabla);
+
+    // Función para alternar visibilidad de datos
+    function toggleDatos() {
+      const datosFuente = document.querySelector('.datos-fuente');
+      datosFuente.style.display = datosFuente.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Función corregida para calcular el uso total de materias
+    function calcularUsoMaterias() {
+      const usoMaterias = {};
+      // Inicializar todos los contadores en 0
+      Object.keys(materias).forEach(mat => usoMaterias[mat] = 0);
+
+      // Recorrer todas las filas de la tabla
+      document.querySelectorAll("tbody tr").forEach(row => {
+        const cells = row.querySelectorAll("td");
+        
+        // Revisar las 3 columnas de materias (posiciones 1, 4, 7)
+        for (let i of [1, 4, 7]) {
+          const select = cells[i]?.querySelector("select");
+          const input = cells[i + 1]?.querySelector("input");
+          
+          if (select && input) {
+            const materia = select.value;
+            const horas = parseFloat(input.value) || 0;
+            
+            if (materia && materia in materias && horas > 0) {
+              usoMaterias[materia] += horas;
+            }
+          }
+        }
+      });
+
+      return usoMaterias;
+    }
+
+    // Función para actualizar disponibilidad de materias en dropdowns
+    function actualizarDisponibilidadMaterias() {
+      const usoMaterias = calcularUsoMaterias();
+      
+      document.querySelectorAll("select").forEach(select => {
+        const valorActual = select.value;
+        
+        // Limpiar opciones existentes
+        select.innerHTML = '<option value="">--</option>';
+        
+        Object.keys(materias).forEach(materia => {
+          const option = document.createElement('option');
+          option.value = materia;
+          
+          const usado = usoMaterias[materia] || 0;
+          const total = materias[materia];
+          const disponible = total - usado;
+          
+          // Si la materia está completamente usada y no es la selección actual
+          if (disponible <= 0 && materia !== valorActual) {
+            option.disabled = true;
+            option.className = 'option-completa';
+            option.textContent = `${materia} (COMPLETA)`;
+          } else {
+            option.textContent = materia;
+            // Si queda poco disponible, mostrar cuánto queda
+            if (disponible > 0 && disponible < total) {
+              option.textContent = `${materia} (${disponible}h disponibles)`;
+            }
+          }
+          
+          if (materia === valorActual) {
+            option.selected = true;
+          }
+          
+          select.appendChild(option);
+        });
+      });
+    }
+
+    // Función para actualizar la columna "horas restantes" individual
+    function actualizarHorasRestantesIndividual(row) {
+      const cells = row.querySelectorAll("td");
+      const usoMaterias = calcularUsoMaterias();
+      
+      // Actualizar las 3 columnas de materias
+      for (let i of [1, 4, 7]) {
+        const select = cells[i]?.querySelector("select");
+        const input = cells[i + 1]?.querySelector("input");
+        const restanteCell = cells[i + 2];
+        
+        if (select && input && restanteCell) {
+          const materia = select.value;
+          const horasAsignadas = parseFloat(input.value) || 0;
+          
+          if (materia && materia in materias) {
+            const totalMateria = materias[materia];
+            const usoTotalMateria = usoMaterias[materia] || 0;
+            const restantesMateria = totalMateria - usoTotalMateria;
+            
+            restanteCell.textContent = restantesMateria;
+            
+            // Aplicar estilos según el estado
+            if (restantesMateria < 0) {
+              restanteCell.className = 'resta horas-excedidas';
+            } else if (restantesMateria === 0) {
+              restanteCell.className = 'resta materia-agotada';
+            } else {
+              restanteCell.className = 'resta';
+            }
+          } else {
+            restanteCell.textContent = "";
+            restanteCell.className = 'resta';
+          }
+        }
+      }
+    }
+
+    // Función para actualizar tabla de estado de materias
+    function actualizarEstadoMaterias() {
+      try {
+        const usoMaterias = calcularUsoMaterias();
+        const tbody = document.querySelector("#estadoMaterias tbody");
+        
+        if (!tbody) return;
+        
+        tbody.innerHTML = Object.keys(materias).map(mat => {
+          const total = materias[mat];
+          const usado = usoMaterias[mat] || 0;
+          const restante = total - usado;
+          const clase = restante < 0 ? 'horas-excedidas' : (restante === 0 ? 'materia-agotada' : '');
+          
+          return `
+            <tr class="${clase}">
+              <td>${mat}</td>
+              <td>${total}</td>
+              <td>${usado}</td>
+              <td>${restante}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Error al actualizar estado de materias:', error);
+      }
+    }
+
+    // Función principal para actualizar horas
+    function actualizarHoras(elem) {
+      try {
+        const row = elem.closest("tr");
+        if (!row) return;
+        
+        const cells = row.querySelectorAll("td");
+        let totalAsignadas = 0;
+
+        // Calcular el total de horas asignadas en esta fila
+        for (let i of [1, 4, 7]) {
+          const input = cells[i + 1]?.querySelector("input");
+          if (input) {
+            const horas = parseFloat(input.value) || 0;
+            totalAsignadas += horas;
+          }
+        }
+
+        // Actualizar el total de horas asignadas
+        const totalCell = cells[10];
+        if (totalCell) {
+          totalCell.textContent = totalAsignadas;
+        }
+
+        // Actualizar horas restantes individuales
+        actualizarHorasRestantesIndividual(row);
+        
+        // Actualizar todas las filas para reflejar el uso global
+        document.querySelectorAll("tbody tr").forEach(r => {
+          if (r !== row) {
+            actualizarHorasRestantesIndividual(r);
+          }
+        });
+        
+        // Actualizar estado de materias
+        actualizarEstadoMaterias();
+        
+        // Actualizar disponibilidad en dropdowns
+        actualizarDisponibilidadMaterias();
+      } catch (error) {
+        console.error('Error al actualizar horas:', error);
+      }
+    }
+
+    // Funcionalidad de descarga PDF
+    document.getElementById("descargarBtn").addEventListener("click", () => {
+      // Cargar jsPDF dinámicamente
+      if (typeof jsPDF === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.onload = function() {
+          generarPDF();
+        };
+        script.onerror = function() {
+          alert("Error al cargar la librería PDF. Verifica tu conexión a internet.");
+        };
+        document.head.appendChild(script);
+      } else {
+        generarPDF();
+      }
+    });
+
+    // Función para generar el PDF
+    function generarPDF() {
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFontSize(16);
+        doc.text("Gestor de Espacios Curriculares No Troncales - DEM", 10, 15);
+        
+        doc.setFontSize(12);
+        let yPosition = 30;
+        
+        const rows = document.querySelectorAll("tbody tr");
+        const tableData = [];
+        
+        rows.forEach(row => {
+          const cells = row.querySelectorAll("td");
+          const rowData = [];
+          
+          rowData.push(cells[0].textContent);
+          
+          for (let i of [1,4,7]) {
+            const materia = cells[i].querySelector("select").value || "--";
+            const horas = cells[i+1].querySelector("input").value || "0";
+            rowData.push(materia, horas);
+          }
+          
+          rowData.push(cells[10].textContent);
+          tableData.push(rowData);
+        });
+        
+        doc.text("Asignación de Espacios Curriculares:", 10, yPosition);
+        yPosition += 10;
+        
+        const headers = ["Espacio", "Materia 1", "Hrs", "Materia 2", "Hrs", "Materia 3", "Hrs", "Total"];
+        let xPos = 10;
+        headers.forEach(header => {
+          doc.text(header, xPos, yPosition);
+          xPos += 25;
+        });
+        yPosition += 10;
+        
+        tableData.slice(0, 10).forEach(row => {
+          xPos = 10;
+          row.forEach(cell => {
+            doc.text(String(cell).substring(0, 15), xPos, yPosition);
+            xPos += 25;
+          });
+          yPosition += 8;
+        });
+        
+        const datosFuente = document.querySelector('.datos-fuente');
+        if (datosFuente.style.display === 'block') {
+          yPosition += 10;
+          doc.text("Resumen de Materias:", 10, yPosition);
+          yPosition += 10;
+          
+          const materiasRows = document.querySelectorAll("#estadoMaterias tbody tr");
+          materiasRows.forEach(row => {
+            const cells = row.querySelectorAll("td");
+            const materia = cells[0].textContent.substring(0, 30);
+            const total = cells[1].textContent;
+            const usado = cells[2].textContent;
+            const restante = cells[3].textContent;
+            
+            doc.text(`${materia}: ${usado}/${total} (${restante} restantes)`, 10, yPosition);
+            yPosition += 6;
+            
+            if (yPosition > 280) return;
+          });
+        }
+        
+        doc.save("espacios_curriculares.pdf");
+        
+      } catch (error) {
+        console.error('Error al generar PDF:', error);
+        alert("Error al generar el PDF. Revisa la consola para más detalles.");
+      }
+    }
+
+    // Inicializar
+    actualizarEstadoMaterias();
+    actualizarDisponibilidadMaterias();
+  </script>
+</body>
+</html>
